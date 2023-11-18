@@ -16,7 +16,7 @@ Follow these steps to get started with the Auto Grading Software:
 
 1. Clone the repository to your local machine:
     ```bash
-      git clone https://github.com/yourusername/auto-grading-software.git
+      git clone https://github.com/yourusername/OMR_project.git
     ```
 2. Install the required dependencies:
     ```bash

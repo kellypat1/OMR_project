@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Auto Grading Software</title>
+    <!-- Include Tailwind CSS via CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Style for the popup message */
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+
+        /* Style for the error message */
+        .error-message {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mx-auto p-6 bg-gray-100 rounded-lg shadow-lg">
+        <h1 class="text-3xl font-bold text-center mb-6">Auto Grading Software</h1>
+
+        <div class="p-4 bg-white rounded-lg shadow-lg mx-auto">
+            <!-- Display the success message if the 'success' query parameter is present -->
+            {% if 'success' in request.args %}
+            <div class="text-green-500 text-lg font-semibold mb-2">
+                {{ request.args['success'] }}
+            </div>
+            {% endif %}
+
+            <form action="/upload" method="post" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <h2 class="text-2xl font-semibold mb-2">Files</h2>
+                    <div class="flex space-x-4">
+                        <div class="w-1/2">
+                            <label for="students" class="block text-lg font-semibold">Students:</label>
+                            <input type="file" name="students[]" id="students" required multiple
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400">
+                        </div>
+                        <div class="w-1/2">
+                            <label for="answers" class="block text-lg font-semibold">Answers:</label>
+                            <input type="file" name="answers[]" id="answers" required
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <div class="flex justify-center space-x-4">
+                        <input type="submit" value="Upload"
+                            class="bg-green-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 cursor-pointer">
+                        <a href="{{ url_for('reset') }}"
+                            class="bg-red-500 text-white font-semibold py-3 px-4 rounded-lg hover:bg-red-700 cursor-pointer">
+                            Reset
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            <form action="/results" method="post" class="mt-4 text-center" onsubmit="return validateForm()">
+                <div class="mb-4">
+                    <h2 class="text-2xl font-semibold mb-2">Exam Details</h2>
+                    <div class="flex space-x-4">
+                        <div class="w-1/2">
+                            <label for="examName" class="block text-lg font-semibold">Examination Name:</label>
+                            <input type="text" name="examName" id="examName" placeholder="Examination name"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400">
+                        </div>
+                        <div class="w-1/2">
+                            <label for="examDate" class="block text-lg font-semibold">Exam Date:</label>
+                            <input type="date" name="examDate" id="examDate"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400">
+                        </div>
+                    </div>
+                </div>
+                <input type="submit" value="Generate Results"
+                    class="bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 cursor-pointer"
+                    onclick="validateForm()">
+            </form>
+        </div>
+    </div>
+
+    <!-- Popup message div -->
+    <div id="popupMessage" class="popup"></div>
+
+    <script>
+        // JavaScript to show the popup message
+        function showPopupMessage(message) {
+            const popupMessage = document.getElementById('popupMessage');
+            popupMessage.innerText = message;
+            popupMessage.style.display = 'block';
+
+            // Hide the popup message after a few seconds
+            setTimeout(() => {
+                popupMessage.style.display = 'none';
+            }, 3000); // Change the duration as needed (in milliseconds)
+        }
+
+        // JavaScript function to validate the form
+        function validateForm() {
+            const examName = document.getElementById('examName').value;
+            const examDate = document.getElementById('examDate').value;
+
+            if (!examName || !examDate) {
+                showPopupMessage('Please fill out the Examination Name and the Examination Date');
+                return false;
+            } else {
+                return true; // Allow the form submission if fields are not empty
+            }
+        }
+    </script>
+
+    <footer class="text-center text-gray-600 py-4">
+        <p class="font-semibold">Created with <span class="text-red-500">&hearts;</span> by Kelly Patsika</p>
+    </footer>
+</body>
+
+</html>

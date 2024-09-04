@@ -58,8 +58,10 @@ static void AppendMyData()
         string answer;
 
         answer = to_string_answer(itTesterAnswer->second);
-
-        if (itStandardAnswer->second != itTesterAnswer->second)
+        if (itTesterAnswer->second == 100) {
+            answer.append("/to doubt");
+        } 
+        if (itStandardAnswer->second != itTesterAnswer->second && itTesterAnswer->second != 100)
         {
             answer.append("/wrong");
         }
@@ -124,13 +126,16 @@ static std::map<int, int> DetermineMarkedAnswer(Mat thresh, std::vector<Vec4i> h
             }
             mask = Mat::zeros(thresh.size(), CV_8U);
             drawContours(mask, *Counter, i, 255, FILLED, 8, hierarchy, 0, Point());
+           
             bitwise_and(mask, thresh, mask);
+            
             if (countNonZero(mask) > maxPixel)
             {
                 maxPixel = countNonZero(mask);
                 answerKey = j;
             }
         }
+        if (maxPixel <100) answerKey ==100;
         Answer.insert(std::make_pair(i / choice - 1, answerKey));
     }
     return Answer;
@@ -139,47 +144,50 @@ static std::map<int, int> DetermineMarkedAnswer(Mat thresh, std::vector<Vec4i> h
 static int DetermineOfAnswer(int is_answer, int w, int h)
 {
     double ar = (double)w / h;
-
+    
     if (is_answer)
     {
-        if (w >= 20 && h >= 20)
+        if (w >= 8 && h >= 8)
         {
-            if (w <= 70 && h <= 70 /*&& ar<=1.4 && ar >=0.6*/)
+            if (w <= 40 && h <= 40 /*&& ar<=1.4 && ar >=0.6*/)
+            {
+                return 1;
+            }
+        }
+    }    
+    else
+    {
+        if (w >= 8 && h >= 8)
+        {
+            if (w <= 40 && h <= 40)
             {
                 return 1;
             }
         }
     }
-    else
-    {
-        if (w >= 20 && w <= 70 && h >= 20 & h <= 70)
-        {
-           
-            return 1;
-        }
-    }
-
     return 0;
 }
 
 static std::map<int, int> ProcessToDetermineMarkedAnswer(Mat wrapped, Mat paper, std::vector<std::vector<Point>> contours, std::vector<std::vector<Point>> *Counter, int is_answer)
 {
-    Mat thresh;
-    std::vector<Vec4i> hierarchy;
+    Mat thresh, kernel, eroded, edges;
+    std::vector<Vec4i> hierarchy, lines;
     int wrong_calculation = 0;
 
+
     // Step 3: Extract the sets of bubbles (questionCnt)
-    threshold(wrapped, thresh, 127, 255, THRESH_BINARY_INV | THRESH_OTSU);
 
-    findContours(thresh, contours, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE, Point(0, 0));
+    adaptiveThreshold(wrapped, thresh, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY_INV, 11, 10);
 
+    findContours(thresh, contours, hierarchy, RETR_CCOMP, CHAIN_APPROX_NONE, Point(0, 0));
+   
     std::vector<std::vector<Point>> contours_poly(contours.size());
     std::vector<Rect> boundRect(contours.size());
-
+    
     // Find document countour
     for (int i = 0; i < contours.size(); i++)
     {
-        approxPolyDP(Mat(contours[i]), contours_poly[i], 0.1, true);
+        approxPolyDP(Mat(contours[i]), contours_poly[i], 0.01, true);
         int w = boundingRect(Mat(contours[i])).width;
         int h = boundingRect(Mat(contours[i])).height;
         double ar = (double)w / h;
@@ -192,22 +200,24 @@ static std::map<int, int> ProcessToDetermineMarkedAnswer(Mat wrapped, Mat paper,
             }
         }
     }
-    if (is_answer)
-    {
-        if (Counter->size() != 100)
-        {
-            wrong_calculation = 1;
-        }
-    }
-    else
-    {
-        if (Counter->size() != 50)
-        {
-            wrong_calculation = 1;
-        }
-    }
+    
+      if (is_answer)
+      {
+          if (Counter->size() != 100)
+          {
+              wrong_calculation = 1;
+          }
+      }
+      else
+      {
+          if (Counter->size() != 50)
+          {
+              wrong_calculation = 1;
+          }
+      }
+    
     // Step 4: Sort the questions/bubbles into rows.
-    if (!wrong_calculation)
+ if (!wrong_calculation)
     {
         int k = 0;
         sort_contour(*Counter, 0, (int)Counter->size(), std::string("top-to-bottom"));
@@ -241,7 +251,9 @@ static vector<Point> FindAnswersContour(std::vector<std::vector<Point>> contours
         int w = boundingRect(Mat(element)).width;
         int h = boundingRect(Mat(element)).height;
         double perimeter = arcLength(element, true);
+
         approxPolyDP(element, approxCurve, 0.07 * perimeter, true);
+
         if (approxCurve.size() == 4)
         {
 
@@ -321,8 +333,11 @@ static int ComputeAnswerAndAemMap(int is_tester)
             return 0;
         }
         cvtColor(image, gray, COLOR_BGR2GRAY);
-        GaussianBlur(gray, blurred, Size(5, 5), 0);
+        GaussianBlur(gray, blurred, Size(7, 7), 0);
         threshold(blurred, edge, 127, 255, THRESH_BINARY_INV | THRESH_OTSU);
+        resize(edge, edge, Size(750, 1000), INTER_LANCZOS4);
+        resize(image, image, Size(750, 1000), INTER_LANCZOS4);
+        resize(gray, gray, Size(750, 1000), INTER_LANCZOS4);
 
         Mat paper, wrapped, thresh, edge_wrapped, image_wrapped, gray_wrapped;
         std::vector<std::vector<Point>> contours_outside;
@@ -395,7 +410,8 @@ static int ComputeAnswerAndAemMap(int is_tester)
 
 int main(int argc, char **argv)
 {
-    if (!ComputeAnswerAndAemMap(0))return 0;
+    if (!ComputeAnswerAndAemMap(0))
+        return 0;
     ComputeAnswerAndAemMap(1);
 
     return 0;
